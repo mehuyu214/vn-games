@@ -17,7 +17,7 @@
   .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; max-width:1000px; margin:0 auto; }
   .card { background:#171728; border:1px solid #34345a; border-radius:14px; overflow:hidden; text-align:left; color:#f2f2f5; padding:0; transition:transform .15s, border-color .15s; width:100%; }
   .card:hover { transform:translateY(-3px); border-color:#8f7bff; }
-  .card img { width:100%; height:140px; object-fit:cover; display:block; background:#23233d; }
+  .card img { width:100%; height:140px; object-fit:cover; object-position:top; display:block; background:#23233d; }
   .card .body { padding:14px 16px 16px; }
   .card h2 { font-size:19px; margin-bottom:4px; }
   .card .hero { color:#ffb7c9; font-size:13px; margin-bottom:8px; }
@@ -124,9 +124,9 @@ const GAMES = [
   title: "桜色シグナル",
   heroine: "さくら（21歳）",
   desc: "桜舞う駅前で、幼なじみと5年ぶりに再会する。写真展デートの先にあるのは、友達のままの春か、それとも――。",
-  cover: "assets/sakura_cover.svg",
+  cover: "assets/sakura_cover.png",
   r18: true,
-  images: { park: "assets/sakura_park.svg", station: "assets/sakura_station.svg", room: "assets/sakura_room.svg", char: "assets/sakura_char.svg" },
+  images: { park: "assets/sakura_park.svg", station: "assets/sakura_station.svg", room: "assets/sakura_room.svg", char: "assets/sakura_char.png" },
   scenes: [
     { id: "a01", bg: "station", name: "", text: "桜の花びらが、駅前のロータリーに雪みたいに舞っていた。\n――5年ぶりの地元。俺はキャリーバッグを引きながら、待ち合わせの時計台を見上げた。" },
     { id: "a02", name: "", text: "「……悠太？」\n後ろから、懐かしい声がした。" },
@@ -225,9 +225,9 @@ const GAMES = [
   title: "真夜中のコンビニ",
   heroine: "美咲（22歳）",
   desc: "深夜バイトの先輩・美咲と過ごす静かな夜勤。雨の夜、閉店後の店内で二人の距離が縮まっていく。",
-  cover: "assets/misaki_cover.svg",
+  cover: "assets/misaki_cover.png",
   r18: true,
-  images: { store: "assets/misaki_store.svg", street: "assets/misaki_street.svg", room: "assets/misaki_room.svg", char: "assets/misaki_char.svg" },
+  images: { store: "assets/misaki_store.svg", street: "assets/misaki_street.svg", room: "assets/misaki_room.svg", char: "assets/misaki_char.png" },
   scenes: [
     { id: "b01", bg: "store", name: "", text: "深夜1時のコンビニ。客足の途絶えた店内に、蛍光灯の低い唸りだけが響く。\n俺の夜勤バイトも、今日で3か月目になった。" },
     { id: "b02", char: true, name: "美咲", text: "悠太くん、おつかれさま。はい、あったかいコーヒー。……ねえ、今日の夜勤、わたしと二人だけだって。知ってた？" },
@@ -318,9 +318,9 @@ const GAMES = [
   title: "研究室の最終電車",
   heroine: "凛（23歳）",
   desc: "大学院の研究室で徹夜する凛と、学部生の俺。最終電車を逃した夜、二人の距離が静かに近づく。",
-  cover: "assets/rin_cover.svg",
+  cover: "assets/rin_cover.png",
   r18: true,
-  images: { lab: "assets/rin_lab.svg", campus: "assets/rin_campus.svg", room: "assets/rin_room.svg", char: "assets/rin_char.svg" },
+  images: { lab: "assets/rin_lab.svg", campus: "assets/rin_campus.svg", room: "assets/rin_room.svg", char: "assets/rin_char.png" },
   scenes: [
     { id: "c01", bg: "lab", name: "", text: "夜11時の研究室。モニタの光と、サーバーのファンの音。\n学会発表を明日に控え、大学院生の凛さんはまだデータと睨めっこしていた。" },
     { id: "c02", char: true, name: "凛", text: "悠太、まだいたの。学部生は早く帰りなさい。……と言いたいけど、正直、いてくれると助かる。最後の集計、手伝ってくれる？" },
@@ -412,9 +412,9 @@ const GAMES = [
   title: "閉館後の図書室",
   heroine: "優奈（25歳）",
   desc: "市立図書館の司書・優奈と、閉館後の静かな書庫で過ごす時間。雨宿りの夜、二人の秘密が始まる。",
-  cover: "assets/yuna_cover.svg",
+  cover: "assets/yuna_cover.png",
   r18: true,
-  images: { library: "assets/yuna_library.svg", stacks: "assets/yuna_stacks.svg", room: "assets/yuna_room.svg", char: "assets/yuna_char.svg" },
+  images: { library: "assets/yuna_library.svg", stacks: "assets/yuna_stacks.svg", room: "assets/yuna_room.svg", char: "assets/yuna_char.png" },
   scenes: [
     { id: "d01", bg: "library", name: "", text: "市立図書館、閉館30分前。返却本の山を片付けながら、俺はカウンターの優奈さんをちらりと見た。\n週3で通う理由は、半分が本で、半分が彼女だった。" },
     { id: "d02", char: true, name: "優奈", text: "悠太さん、今日も遅くまでお疲れさま。……あら、その本、背表紙が傷んでるわね。よかったら、閉館後に修理を手伝ってくれない？" },
