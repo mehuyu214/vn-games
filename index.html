@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VN Arcade — オンライン・ビジュアルノベル 5作品</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; background:#0b0b14; color:#f2f2f5; font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif; }
+  button { font-family:inherit; cursor:pointer; }
+
+  /* ===== 作品選択 ===== */
+  #select { min-height:100%; padding:28px 16px 48px; background:radial-gradient(1200px 600px at 50% -10%, #2a2140 0%, #0b0b14 60%); }
+  #select h1 { text-align:center; font-size:30px; letter-spacing:.14em; margin:10px 0 4px; }
+  #select .sub { text-align:center; color:#b9b4d0; font-size:13px; margin-bottom:6px; }
+  #select .warn { text-align:center; color:#ff8fa3; font-size:12px; margin-bottom:22px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; max-width:1000px; margin:0 auto; }
+  .card { background:#171728; border:1px solid #34345a; border-radius:14px; overflow:hidden; text-align:left; color:#f2f2f5; padding:0; transition:transform .15s, border-color .15s; width:100%; }
+  .card:hover { transform:translateY(-3px); border-color:#8f7bff; }
+  .card img { width:100%; height:140px; object-fit:cover; display:block; background:#23233d; }
+  .card .body { padding:14px 16px 16px; }
+  .card h2 { font-size:19px; margin-bottom:4px; }
+  .card .hero { color:#ffb7c9; font-size:13px; margin-bottom:8px; }
+  .card p { color:#c9c6da; font-size:13px; line-height:1.6; }
+  .card .tags { margin-top:10px; font-size:11px; color:#9d97c4; }
+  .card .tags .r18 { color:#ff8fa3; border:1px solid #ff8fa3; border-radius:6px; padding:1px 6px; margin-right:6px; }
+
+  /* ===== ゲーム画面 ===== */
+  #game { display:none; position:fixed; inset:0; overflow:hidden; background:#000; }
+  #bgImg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .6s; }
+  #bgGrad { position:absolute; inset:0; background:linear-gradient(160deg,#3b2f5e,#141428 70%); }
+  #charImg { position:absolute; left:50%; bottom:0; transform:translateX(-50%); max-height:88%; max-width:92%; object-fit:contain; opacity:0; transition:opacity .4s; filter:drop-shadow(0 6px 24px rgba(0,0,0,.55)); }
+  #game.r18mode #charImg { opacity:0 !important; }
+  #game.r18mode #bgImg { opacity:0 !important; }
+  #game.r18mode #bgGrad { background:radial-gradient(800px 500px at 50% 40%, #241226 0%, #050308 75%); }
+  #r18badge { display:none; position:absolute; top:12px; left:12px; background:rgba(120,10,40,.85); border:1px solid #ff8fa3; color:#ffd7e0; font-size:12px; padding:4px 10px; border-radius:999px; z-index:5; }
+  #game.r18mode #r18badge { display:block; }
+
+  #toolbar { position:absolute; top:10px; right:10px; display:flex; gap:6px; z-index:6; }
+  #toolbar button { background:rgba(20,20,40,.72); color:#e8e6f5; border:1px solid #4a4a78; border-radius:8px; font-size:12px; padding:6px 10px; }
+  #toolbar button:hover { background:rgba(50,45,90,.85); }
+
+  #textbox { position:absolute; left:0; right:0; bottom:0; padding:14px 16px 20px; background:linear-gradient(transparent, rgba(5,5,14,.88) 22%); z-index:4; cursor:pointer; }
+  #namebox { display:inline-block; background:#5a3d99; border:1px solid #9d86e8; color:#fff; font-size:14px; font-weight:700; padding:3px 14px; border-radius:8px 8px 0 0; margin-left:6px; min-height:24px; }
+  #namebox:empty { visibility:hidden; }
+  #text { background:rgba(10,10,24,.82); border:1px solid #3d3d68; border-radius:10px; padding:14px 16px; font-size:17px; line-height:1.75; min-height:96px; white-space:pre-wrap; }
+  #next-ind { text-align:right; color:#cbbfff; font-size:12px; height:16px; animation:blink 1.2s infinite; }
+  @keyframes blink { 0%,100%{opacity:.15} 50%{opacity:1} }
+
+  /* ===== 選択肢 ===== */
+  #choices { display:none; position:absolute; inset:0; z-index:7; background:rgba(3,3,10,.55); flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:20px; }
+  #choices button { width:min(520px,88%); background:rgba(24,22,48,.95); color:#fff; border:1px solid #8f7bff; border-radius:12px; font-size:16px; padding:14px 18px; }
+  #choices button:hover { background:#3a2f73; }
+
+  /* ===== バックログ ===== */
+  #backlog { display:none; position:absolute; inset:0; z-index:8; background:rgba(4,4,12,.94); padding:20px; overflow:auto; }
+  #backlog h3 { margin-bottom:12px; }
+  #backlog .line { margin-bottom:10px; font-size:14px; line-height:1.7; color:#d8d5ea; }
+  #backlog .line b { color:#ffb7c9; }
+  #backlog .close { position:sticky; top:0; float:right; background:#2c2c50; color:#fff; border:1px solid #55558c; border-radius:8px; padding:6px 12px; }
+
+  /* ===== 年齢確認 ===== */
+  #gate { display:none; position:fixed; inset:0; z-index:20; background:rgba(2,2,8,.9); align-items:center; justify-content:center; padding:20px; }
+  #gate .box { background:#1a1a30; border:1px solid #ff8fa3; border-radius:14px; padding:26px; max-width:420px; text-align:center; }
+  #gate h3 { color:#ff8fa3; margin-bottom:10px; }
+  #gate p { font-size:14px; line-height:1.7; color:#d8d5ea; margin-bottom:18px; }
+  #gate .row { display:flex; gap:10px; justify-content:center; }
+  #gate button { border-radius:10px; padding:10px 18px; font-size:15px; border:1px solid #55558c; background:#2c2c50; color:#fff; }
+  #gate button.yes { background:#7c1d3f; border-color:#ff8fa3; }
+</style>
+</head>
+<body>
+
+<div id="select">
+  <h1>VN ARCADE</h1>
+  <div class="sub">オンラインで遊べるビジュアルノベル ― 全5作品</div>
+  <div class="warn">※ 本サイトには成人向けの文章表現（R18シーンは文章のみ・画像なし）が含まれます。18歳未満の方はプレイできません。</div>
+  <div class="cards" id="cards"></div>
+</div>
+
+<div id="game">
+  <div id="bgGrad"></div>
+  <img id="bgImg" alt="">
+  <img id="charImg" alt="">
+  <div id="r18badge">R18 ― このシーンは文章のみで描写されます</div>
+  <div id="toolbar">
+    <button id="btnSave">セーブ</button>
+    <button id="btnLoad">ロード</button>
+    <button id="btnLog">ログ</button>
+    <button id="btnTitle">タイトル</button>
+  </div>
+  <div id="textbox">
+    <div id="namebox"></div>
+    <div id="text"></div>
+    <div id="next-ind">▼</div>
+  </div>
+  <div id="choices"></div>
+  <div id="backlog"><button class="close" id="btnLogClose">閉じる</button><h3>バックログ</h3><div id="logLines"></div></div>
+</div>
+
+<div id="gate">
+  <div class="box">
+    <h3>年齢確認</h3>
+    <p>この作品には成人向けの文章表現が含まれます（R18シーンは文章のみで、画像はありません）。<br>あなたは18歳以上ですか？</p>
+    <div class="row">
+      <button class="yes" id="gateYes">はい、18歳以上です</button>
+      <button id="gateNo">いいえ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   画像の差し替え方法:
+   各作品データの images にあるパス（assets/○○.svg）を、
+   好きな画像ファイルのパスに書き換えるか、
+   同じファイル名のまま中身を差し替えてください。
+   画像が読み込めない場合は自動でグラデーション表示になります。
+   ============================================================ */
+const GAMES = [
+{
+  id: "sakura",
+  title: "桜色シグナル",
+  heroine: "さくら（21歳）",
+  desc: "桜舞う駅前で、幼なじみと5年ぶりに再会する。写真展デートの先にあるのは、友達のままの春か、それとも――。",
+  cover: "assets/sakura_cover.svg",
+  r18: true,
+  images: { park: "assets/sakura_park.svg", station: "assets/sakura_station.svg", room: "assets/sakura_room.svg", char: "assets/sakura_char.svg" },
+  scenes: [
+    { id: "a01", bg: "station", name: "", text: "桜の花びらが、駅前のロータリーに雪みたいに舞っていた。\n――5年ぶりの地元。俺はキャリーバッグを引きながら、待ち合わせの時計台を見上げた。" },
+    { id: "a02", name: "", text: "「……悠太？」\n後ろから、懐かしい声がした。" },
+    { id: "a03", char: true, name: "さくら", text: "やっぱり悠太だ！　わたし、さくら。覚えてる？　高校のとき、隣の席だった――" },
+    { id: "a04", name: "悠太", text: "忘れるわけないだろ。さくら、お前……すげえ綺麗になったな。" },
+    { id: "a05", name: "さくら", text: "ふふ、ありがとう。わたし今、近くの写真館で働いてるの。悠太は？　東京の大学、卒業したんだよね。" },
+    { id: "a06", name: "", text: "就職で地元に戻ってきたこと、来週から新社会人になることを話すと、さくらは目を輝かせた。" },
+    { id: "a07", char: true, name: "さくら", text: "じゃあさ、今度の日曜、空いてる？　わたしの初めての写真展があるの。……来てほしいな、悠太に。" },
+    { id: "a08", choice: [
+      { text: "「もちろん行くよ」と即答する", jump: "a09", set: { love: 1 } },
+      { text: "「予定見てからでいい？」と濁す", jump: "a10", set: { love: 0 } }
+    ] },
+    { id: "a09", name: "さくら", text: "ほんと！？　……よかった。じゃあ約束ね、指切り！\n（小指を差し出す手が、少しだけ震えていた）", jump: "a11" },
+    { id: "a10", name: "さくら", text: "そ、そっか。うん、無理しないで。……招待券、渡しとくね。\n（笑顔のまま、少しだけ目を伏せた）", jump: "a11" },
+    { id: "a11", bg: "park", name: "", text: "――日曜日。写真展の会場は、桜並木の続く公園の小さなギャラリーだった。" },
+    { id: "a12", char: true, name: "さくら", text: "来てくれたんだ……！　これ、わたしが一番見てほしかった写真。高校の文化祭のとき、悠太が撮ってくれた桜の写真を、わたしなりに撮り直したの。" },
+    { id: "a13", name: "", text: "写真の中の桜は、あの日の放課後とそっくりで。5年間、この人はずっと、あの春を大事に持っていたのだと分かった。" },
+    { id: "a14", name: "悠太", text: "さくら。……この写真、すごくいい。お前の気持ちが、まっすぐ伝わってくる。" },
+    { id: "a15", name: "さくら", text: "……悠太にそう言ってもらえたら、もう十分。あのね、わたし、ずっと言えなかったことがあって――" },
+    { id: "a16", choice: [
+      { text: "「俺も同じだ」と気持ちを伝える", jump: "a17", set: { love: 2 } },
+      { text: "「今日はありがとう」と話を締める", jump: "a20", set: { love: 0 } }
+    ] },
+    { id: "a17", name: "悠太", text: "高校のときから、俺もずっとお前が好きだった。社会人になって戻ってきた理由の半分は、正直、お前に会いたかったからだ。" },
+    { id: "a18", name: "さくら", text: "……っ！　悠太……わたしも。わたしもずっと、悠太だけだったの。\n（目に涙を浮かべながら、桜色に頬を染めて笑った）" },
+    { id: "a19", branch: { flag: "love", min: 2, then: "a21", else: "a20" } },
+    { id: "a20", bg: "station", char: true, name: "さくら", text: "今日は来てくれてありがとう。……また、友達として遊ぼうね。\n【NORMAL END ― 友達のままの春】", end: true },
+    { id: "a21", bg: "room", name: "", text: "閉館後、二人で並んで歩いた桜並木。どちらからともなく手が触れ、指が絡んだ。\n――その夜、さくらは俺の部屋に寄っていった。" },
+    { id: "a22", r18: true, name: "さくら", text: "（ここからは文章のみの描写になります）\n……悠太、今日は帰りたくない。5年分、ずっと我慢してきたの。わたしを、彼女にして？" },
+    { id: "a23", r18: true, name: "", text: "頷くと、さくらは自分から唇を重ねてきた。桜の香りのする髪が頬をくすぐり、震える指がシャツのボタンをひとつずつ外していく。" },
+    { id: "a24", r18: true, name: "さくら", text: "んっ……悠太の心臓、すごく早い。わたしもだよ……ほら、触ってみて。ずっと悠太のものだった体、確かめて。" },
+    { id: "a25", r18: true, name: "", text: "重ねた肌は熱く、さくらは甘い声を漏らしながらしがみついてくる。初めてだという彼女の反応は素直で、愛おしさが胸を締めつけた。" },
+    { id: "a26", r18: true, name: "さくら", text: "あっ……悠太、悠太……！　好き、大好き……もう離さないで。わたしを全部、悠太のものにして……" },
+    { id: "a27", r18: true, name: "", text: "何度も名前を呼び合い、5年分の想いを確かめ合うように、二人は夜の深くまで求め合った。窓の外では、桜の花びらが静かに舞い続けていた。" },
+    { id: "a28", bg: "room", name: "さくら", text: "……おはよう、悠太。ふふ、恋人の朝って、こんなに幸せなんだね。これからはずっと一緒だよ。\n【GOOD END ― 桜色シグナル】", end: true }
+  ]
+},
+{
+  id: "misaki",
+  title: "真夜中のコンビニ",
+  heroine: "美咲（22歳）",
+  desc: "深夜バイトの先輩・美咲と過ごす静かな夜勤。雨の夜、閉店後の店内で二人の距離が縮まっていく。",
+  cover: "assets/misaki_cover.svg",
+  r18: true,
+  images: { store: "assets/misaki_store.svg", street: "assets/misaki_street.svg", room: "assets/misaki_room.svg", char: "assets/misaki_char.svg" },
+  scenes: [
+    { id: "b01", bg: "store", name: "", text: "深夜1時のコンビニ。客足の途絶えた店内に、蛍光灯の低い唸りだけが響く。\n俺の夜勤バイトも、今日で3か月目になった。" },
+    { id: "b02", char: true, name: "美咲", text: "悠太くん、おつかれさま。はい、あったかいコーヒー。……ねえ、今日の夜勤、わたしと二人だけだって。知ってた？" },
+    { id: "b03", name: "悠太", text: "美咲さんのおかげで、仕事だいぶ覚えました。……二人だけって、ちょっと緊張しますね。" },
+    { id: "b04", name: "美咲", text: "あら、緊張？　ふふ、可愛い。……あ、雨、強くなってきたね。天気予報じゃ、朝まで止まないって。" },
+    { id: "b05", name: "", text: "窓の外は本格的な雨。閉店作業を終える頃には、傘があってもずぶ濡れになるような土砂降りだった。" },
+    { id: "b06", char: true, name: "美咲", text: "……ねえ悠太くん。わたしの家、このすぐ近くなの。雨が止むまで、うちで休んでいかない？　夜食も作るし。" },
+    { id: "b07", choice: [
+      { text: "「お邪魔します」と素直に甘える", jump: "b08", set: { love: 1 } },
+      { text: "「店で朝まで待ちます」と遠慮する", jump: "b09", set: { love: 0 } }
+    ] },
+    { id: "b08", name: "美咲", text: "うん、決まり。じゃあシャッター閉めたら一緒に出よう。……ふふ、なんだかドキドキするね、わたしも。", jump: "b10" },
+    { id: "b09", name: "美咲", text: "もう、遠慮しなくていいのに。……でも、悠太くんがそう言うなら。ホットコーヒー、もう一杯入れるね。", jump: "b14" },
+    { id: "b10", bg: "room", name: "", text: "美咲さんの家は、店から歩いて3分のワンルームだった。雨に濡れた制服を脱ぎ、借りた部屋着に着替える。" },
+    { id: "b11", char: true, name: "美咲", text: "はい、オムライス。バイト先じゃ分からないでしょ、わたし料理得意なんだよ。……どう？　美味しい？" },
+    { id: "b12", name: "悠太", text: "……めちゃくちゃ美味いです。美咲さん、仕事もできて料理も上手くて、完璧ですね。" },
+    { id: "b13", name: "美咲", text: "完璧なんかじゃないよ。……一人暮らしの夜は、結構寂しいんだから。悠太くんと夜勤の日だけ、ちょっと楽しみだったの。" },
+    { id: "b14", branch: { flag: "love", min: 1, then: "b15", else: "b19" } },
+    { id: "b15", name: "", text: "食器を片付けた後も、話は尽きなかった。雨音だけが遠くで響く部屋。気づけば、二人の距離は手の届くところまで縮んでいた。" },
+    { id: "b16", name: "美咲", text: "ねえ悠太くん。……わたしのこと、どう思ってる？　先輩として、じゃなくて。一人の女の子として。" },
+    { id: "b17", choice: [
+      { text: "「好きです。ずっと前から」と答える", jump: "b18", set: { love: 2 } },
+      { text: "「尊敬してます」と無難に返す", jump: "b19", set: { love: 0 } }
+    ] },
+    { id: "b18", name: "美咲", text: "……！　本当に？　……やった。わたしもだよ、悠太くん。初めてシフトが被った日から、ずっと気になってた。", jump: "b20" },
+    { id: "b19", bg: "street", char: true, name: "美咲", text: "雨、上がったみたい。……今日はありがとう、悠太くん。また夜勤でね。\n【NORMAL END ― 雨上がりの帰り道】", end: true },
+    { id: "b20", r18: true, name: "美咲", text: "（ここからは文章のみの描写になります）\nじゃあ……今夜は帰さない。わたしの気持ち、体ごと受け止めて？　悠太くん。" },
+    { id: "b21", r18: true, name: "", text: "美咲さんは自分から腕を回し、唇を重ねてきた。コーヒーと雨の匂いのするキス。いつもの頼れる先輩の顔とは違う、甘えたような表情に胸が高鳴る。" },
+    { id: "b22", r18: true, name: "美咲", text: "んんっ……悠太くん、思ったより大胆……。いいよ、もっと。わたし、全部悠太くんに見せてあげる。" },
+    { id: "b23", r18: true, name: "", text: "部屋着の裾が乱れ、白い肌が露わになっていく。美咲さんは恥ずかしそうに身を捩りながらも、俺の手を自分の胸へと導いた。" },
+    { id: "b24", r18: true, name: "美咲", text: "あぁん……っ、悠太くんの手、熱い……。わたしもう、ずっとこうされたかったの。先輩のくせに、年下に夢中だなんて……ね？" },
+    { id: "b25", r18: true, name: "", text: "二人はベッドに倒れ込み、夜明け前まで何度も求め合った。雨上がりの空が白み始める頃、美咲さんは腕の中で穏やかな寝息を立てていた。" },
+    { id: "b26", bg: "room", name: "美咲", text: "おはよう、悠太くん。……ふふ、これからはプライベートでも『先輩』じゃなくていいよ。わたしは悠太くんの、彼女だから。\n【GOOD END ― 真夜中のコンビニ】", end: true }
+  ]
+},
+{
+  id: "rin",
+  title: "研究室の最終電車",
+  heroine: "凛（23歳）",
+  desc: "大学院の研究室で徹夜する凛と、学部生の俺。最終電車を逃した夜、二人の距離が静かに近づく。",
+  cover: "assets/rin_cover.svg",
+  r18: true,
+  images: { lab: "assets/rin_lab.svg", campus: "assets/rin_campus.svg", room: "assets/rin_room.svg", char: "assets/rin_char.svg" },
+  scenes: [
+    { id: "c01", bg: "lab", name: "", text: "夜11時の研究室。モニタの光と、サーバーのファンの音。\n学会発表を明日に控え、大学院生の凛さんはまだデータと睨めっこしていた。" },
+    { id: "c02", char: true, name: "凛", text: "悠太、まだいたの。学部生は早く帰りなさい。……と言いたいけど、正直、いてくれると助かる。最後の集計、手伝ってくれる？" },
+    { id: "c03", name: "悠太", text: "もちろんです。凛さんには卒論で世話になりましたから。……はい、差し入れの栄養ドリンクとおにぎり。" },
+    { id: "c04", name: "凛", text: "……気が利くじゃない。ありがとう。じゃあ遠慮なく。あと2時間で終わらせるわよ、二人で。" },
+    { id: "c05", name: "", text: "二人で黙々と作業する時間は、不思議と心地よかった。凛さんの横顔は真剣で、少しだけ疲れが見えた。" },
+    { id: "c06", char: true, name: "凛", text: "……終わった。やっと終わったわ。悠太のおかげ。ねえ、時計見て。……最終電車、もう出た後よ。" },
+    { id: "c07", choice: [
+      { text: "「俺の部屋、近いので泊まっていいですよ」", jump: "c08", set: { love: 1 } },
+      { text: "「研究室で仮眠しましょう」", jump: "c09", set: { love: 0 } }
+    ] },
+    { id: "c08", name: "凛", text: "……学部生の部屋に泊まる大学院生。噂になったらどうするの。……でも、背に腹は代えられないわね。お言葉に甘えるわ。", jump: "c10" },
+    { id: "c09", name: "凛", text: "そうね、それが無難ね。……ソファは私がもらうわ。悠太は椅子で我慢して。", jump: "c16" },
+    { id: "c10", bg: "room", name: "", text: "俺のワンルーム。凛さんはシャワーを借り、俺の大きめのTシャツを着て現れた。いつもの白衣姿とのギャップに、心臓が跳ねる。" },
+    { id: "c11", char: true, name: "凛", text: "……何よ、じろじろ見て。似合わない？　……ふふ、冗談。ありがとう、悠太。今日は本当に助かった。" },
+    { id: "c12", name: "悠太", text: "凛さん、明日の発表、絶対うまくいきますよ。俺、凛さんの研究が一番すごいと思ってますから。" },
+    { id: "c13", name: "凛", text: "……あなたって、本当に真っ直ぐよね。そういうところ、昔から……いえ、なんでもない。今夜はもう寝ましょう。" },
+    { id: "c14", name: "", text: "布団を譲り、俺が床で丸くなろうとすると、凛さんが小さな声で呼び止めた。" },
+    { id: "c15", name: "凛", text: "悠太。……こっち、来なさい。言いたいことがあるの。わたし、あなたのこと――" },
+    { id: "c16", branch: { flag: "love", min: 1, then: "c17", else: "c21" } },
+    { id: "c17", choice: [
+      { text: "「俺も凛さんが好きです」と先に言う", jump: "c18", set: { love: 2 } },
+      { text: "言葉を待つ", jump: "c19", set: { love: 2 } }
+    ] },
+    { id: "c18", name: "凛", text: "……先に言われた。悔しいけど、嬉しい。わたしもよ、悠太。ずっと、あなたが好きだった。", jump: "c20" },
+    { id: "c19", name: "凛", text: "わたし、あなたが好き。院生と学部生なんて関係ない。……返事、聞かせて？", jump: "c20" },
+    { id: "c20", name: "悠太", text: "俺もです、凛さん。……いえ、凛。俺と付き合ってください。", jump: "c22" },
+    { id: "c21", bg: "campus", char: true, name: "凛", text: "昨夜はありがとう。発表、頑張ってくるわ。……また研究室でね、悠太。\n【NORMAL END ― 朝のキャンパス】", end: true },
+    { id: "c22", r18: true, name: "凛", text: "（ここからは文章のみの描写になります）\n……じゃあ今夜は、研究の話はおしまい。女としてのわたしを、ちゃんと見て。悠太。" },
+    { id: "c23", r18: true, name: "", text: "凛は自分から眼鏡を外し、俺の首に腕を回した。いつも理知的な彼女の、熱っぽい吐息と潤んだ瞳。Tシャツの上からでも分かる体の熱に、理性が溶けていく。" },
+    { id: "c24", r18: true, name: "凛", text: "んっ……悠太、悠太……。わたし、初めてなの。優しく……いえ、あなたの好きにしていい。全部、悠太にあげる。" },
+    { id: "c25", r18: true, name: "", text: "重なり合う体、零れる甘い声。凛は恥ずかしさに頬を染めながらも、俺を求めて腕に力を込めた。研究室では見せない顔が、次々と露わになる。" },
+    { id: "c26", r18: true, name: "凛", text: "ああっ……悠太、好き、好き……！　もう、あなたなしじゃダメかも……責任、取ってよね、彼氏なんだから……" },
+    { id: "c27", r18: true, name: "", text: "夜が明けるまで、二人は何度も愛を確かめ合った。翌日の学会発表で、凛はいつも以上に輝いていたという。\n――俺だけが知る、あの夜の素顔を胸に秘めて。" },
+    { id: "c28", bg: "room", name: "凛", text: "おはよう、悠太。……ふふ、その寝癖。今日からわたしは、あなたの彼女。研究室でも、よろしくね。\n【GOOD END ― 研究室の最終電車】", end: true }
+  ]
+},
+{
+  id: "yuna",
+  title: "閉館後の図書室",
+  heroine: "優奈（25歳）",
+  desc: "市立図書館の司書・優奈と、閉館後の静かな書庫で過ごす時間。雨宿りの夜、二人の秘密が始まる。",
+  cover: "assets/yuna_cover.svg",
+  r18: true,
+  images: { library: "assets/yuna_library.svg", stacks: "assets/yuna_stacks.svg", room: "assets/yuna_room.svg", char: "assets/yuna_char.svg" },
+  scenes: [
+    { id: "d01", bg: "library", name: "", text: "市立図書館、閉館30分前。返却本の山を片付けながら、俺はカウンターの優奈さんをちらりと見た。\n週3で通う理由は、半分が本で、半分が彼女だった。" },
+    { id: "d02", char: true, name: "優奈", text: "悠太さん、今日も遅くまでお疲れさま。……あら、その本、背表紙が傷んでるわね。よかったら、閉館後に修理を手伝ってくれない？" },
+    { id: "d03", name: "悠太", text: "もちろんです。本のことなら何でも手伝います。……優奈さんと残れるなら、なおさら。" },
+    { id: "d04", name: "優奈", text: "ふふ、口が上手いのね。じゃあお願いしようかしら。書庫の奥、行ってみましょう。" },
+    { id: "d05", bg: "stacks", name: "", text: "閉館後の書庫は、二人だけの世界だった。本の匂いと静寂。優奈さんの手際のよさに習って、古い本の背を直していく。" },
+    { id: "d06", char: true, name: "優奈", text: "本ってね、大事に直せば何十年でも生きるの。人も、きっと同じよね。……悠太さんは、直したいもの、ある？" },
+    { id: "d07", choice: [
+      { text: "「優奈さんとの距離を、縮めたいです」", jump: "d08", set: { love: 1 } },
+      { text: "「特にないです」と無難に答える", jump: "d09", set: { love: 0 } }
+    ] },
+    { id: "d08", name: "優奈", text: "……あら。ふふ、勇気があるのね。……わたしもね、最近、あなたの来る日が待ち遠しいの。", jump: "d10" },
+    { id: "d09", name: "優奈", text: "そう。……じゃあ、今日はここまでにしましょう。雨、降ってきちゃったみたいだけど、大丈夫？", jump: "d15" },
+    { id: "d10", name: "", text: "修理を終えた頃、外は激しい雨。優奈さんは窓を見て、小さく溜め息をついた。" },
+    { id: "d11", char: true, name: "優奈", text: "困ったわ、傘が一本だけなの。……ねえ悠太さん。今日はわたしの家に寄っていかない？　駅の反対側で遠回りだけど、夕飯も作るわ。" },
+    { id: "d12", choice: [
+      { text: "「行きます、ぜひ」と答える", jump: "d13", set: { love: 2 } },
+      { text: "「申し訳ないので」と辞退する", jump: "d15", set: { love: 0 } }
+    ] },
+    { id: "d13", bg: "room", name: "", text: "優奈さんの部屋は、本と植物に囲まれた穏やかな空間だった。手料理のパスタを二人で食べ、雨音を聞きながら他愛ない話に笑い合う。" },
+    { id: "d14", char: true, name: "優奈", text: "ねえ悠太さん。……わたしのこと、どう思ってるの？　年上の司書なんて、退屈じゃない？" },
+    { id: "d15", branch: { flag: "love", min: 2, then: "d16", else: "d20" } },
+    { id: "d16", name: "悠太", text: "退屈なんてとんでもない。優奈さんの声も、仕草も、本を選ぶところも、全部好きです。――俺と、付き合ってください。" },
+    { id: "d17", name: "優奈", text: "……！　悠太さん……。わたしでいいの？　……ふふ、ありがとう。わたしも、ずっとあなたが気になっていたの。" },
+    { id: "d18", name: "", text: "優奈さんは少し照れたように笑い、俺の手を両手で包んだ。その温かさに、長く通った図書館の日々が報われた気がした。" },
+    { id: "d19", jump: "d21" },
+    { id: "d20", bg: "library", char: true, name: "優奈", text: "今日は手伝ってくれてありがとう。……また本を借りに来てね、悠太さん。\n【NORMAL END ― 閉館後の図書室】", end: true },
+    { id: "d21", r18: true, name: "優奈", text: "（ここからは文章のみの描写になります）\nじゃあ、今夜は帰さないわ。……わたしの本当の顔、悠太さんだけに教えてあげる。" },
+    { id: "d22", r18: true, name: "", text: "優奈さんは髪を解き、いつもの凛とした司書の顔から、甘く蕩けた表情へと変わっていく。誘うように手が伸び、俺を引き寄せた。" },
+    { id: "d23", r18: true, name: "優奈", text: "んっ……悠太さん、熱い……。わたし、年上なのに、こんなにドキドキしてる。……全部、脱がせて。あなたの手で、わたしをほどいて。" },
+    { id: "d24", r18: true, name: "", text: "重なる唇、絡む指先。優奈さんの体は素直に反応し、静かな部屋に甘い吐息だけが響く。書庫よりも深く、二人だけの秘密のページが捲れていく。" },
+    { id: "d25", r18: true, name: "優奈", text: "あぁ……悠太さん、悠太さん……！　好き……大好き。もう、わたしを一人にしないで……ずっと、そばにいて……" },
+    { id: "d26", r18: true, name: "", text: "夜が更けるまで、二人は幾度も愛を囁き合った。翌朝、図書館のカウンターで交わす視線は、昨日までとは少しだけ違っていた。" },
+    { id: "d27", bg: "room", name: "優奈", text: "おはよう、悠太さん。……ふふ、これからは図書館でも家でも、わたしの特等席はあなたのそばね。\n【GOOD END ― 閉館後の図書室】", end: true }
+  ]
+},
+{
+  id: "serena",
+  title: "セレナの館",
+  heroine: "セレナ（26歳）",
+  desc: "山間の洋館に暮らす令嬢セレナと、家庭教師として雇われた俺。舞踏会の夜、身分差を超える想いが動き出す。",
+  cover: "assets/serena_cover.svg",
+  r18: true,
+  images: { mansion: "assets/serena_mansion.svg", garden: "assets/serena_garden.svg", room: "assets/serena_room.svg", char: "assets/serena_char.svg" },
+  scenes: [
+    { id: "e01", bg: "mansion", name: "", text: "山間の洋館、ヴェルディア邸。亡き恩師の紹介で、俺は令嬢の語学の家庭教師として雇われた。\n――相手は、セレナ・ヴェルディア。26歳。気品と、どこか寂しげな瞳を持つ人だった。" },
+    { id: "e02", char: true, name: "セレナ", text: "ようこそ、悠太先生。今日からよろしくお願いしますね。……ふふ、そんなに緊張なさらないで。わたしは、あなたの授業を楽しみにしていたのですから。" },
+    { id: "e03", name: "悠太", text: "こちらこそ、よろしくお願いします。セレナさんに満足してもらえるよう、全力を尽くします。" },
+    { id: "e04", name: "", text: "授業の日々は穏やかに過ぎた。セレナは聡明で、時折見せる少女のような笑顔に、俺はいつしか惹かれていった。" },
+    { id: "e05", bg: "garden", char: true, name: "セレナ", text: "今夜、館で小さな舞踏会を開きます。先生も、ぜひご参加を。……わたしの、最初のダンスの相手になってくださいますか？" },
+    { id: "e06", choice: [
+      { text: "「光栄です」と手を取る約束をする", jump: "e07", set: { love: 1 } },
+      { text: "「身分が違います」と身を引く", jump: "e08", set: { love: 0 } }
+    ] },
+    { id: "e07", name: "セレナ", text: "……！　本当ですか。ありがとうございます、先生。……今夜が、待ち遠しいです。", jump: "e09" },
+    { id: "e08", name: "セレナ", text: "……そう、ですよね。失礼いたしました。先生は、いつも礼儀正しい方ですから。", jump: "e13" },
+    { id: "e09", bg: "mansion", name: "", text: "舞踏会の夜。ドレスに身を包んだセレナは、目が眩むほど美しかった。二人で踊るワルツ。彼女の手の温かさが、手袋越しに伝わってくる。" },
+    { id: "e10", char: true, name: "セレナ", text: "先生……わたし、この館でずっと一人でした。でもあなたが来てから、毎日が色づいたの。……ねえ先生、今夜は『先生』と呼ぶのを、やめてもいいですか？" },
+    { id: "e11", name: "悠太", text: "セレナ。俺も同じ気持ちです。身分なんて関係ない。俺はあなたが好きだ。" },
+    { id: "e12", name: "セレナ", text: "悠太……！　……嬉しい。わたしも、あなたを愛しています。ずっと、ずっと言いたかった……" },
+    { id: "e13", branch: { flag: "love", min: 1, then: "e14", else: "e18" } },
+    { id: "e14", bg: "garden", name: "", text: "舞踏会を抜け出し、二人で月下の庭園へ。セレナは俺の腕に寄り添い、離れようとしなかった。" },
+    { id: "e15", choice: [
+      { text: "「今夜、あなたの部屋へ行ってもいいですか」", jump: "e16", set: { love: 2 } },
+      { text: "「おやすみなさい」と紳士的に帰る", jump: "e18", set: { love: 0 } }
+    ] },
+    { id: "e16", name: "セレナ", text: "……はい。わたしの部屋で、もっとあなたとお話ししたい。……いえ、本当は、話だけじゃ終わらせたくないの。", jump: "e19" },
+    { id: "e17", jump: "e19" },
+    { id: "e18", bg: "garden", char: true, name: "セレナ", text: "今夜は素敵な舞踏会でした。……おやすみなさい、先生。また明日の授業で。\n【NORMAL END ― 月下の庭園】", end: true },
+    { id: "e19", r18: true, name: "セレナ", text: "（ここからは文章のみの描写になります）\n悠太……今夜は、わたしをあなたのものにしてください。令嬢としてではなく、一人の女として、全部さらけ出します。" },
+    { id: "e20", r18: true, name: "", text: "ドレスの紐が解かれ、白い肌が月明かりに浮かぶ。セレナは恥じらいに身を震わせながらも、自分から俺の胸に倒れ込んできた。" },
+    { id: "e21", r18: true, name: "セレナ", text: "んんっ……悠太、悠太……！　わたし、こんな気持ち、初めて……。もっと、もっとあなたを感じたい。わたしを離さないで……" },
+    { id: "e22", r18: true, name: "", text: "重なる影、交わる吐息。気品ある令嬢の乱れる姿は、俺だけの秘密。セレナは何度も名を呼び、愛を囁きながら身を委ね続けた。" },
+    { id: "e23", r18: true, name: "セレナ", text: "ああ……悠太、愛してる……。わたしの全ては、あなたのもの。この館も、心も、体も……ずっと、そばにいてくださいね。" },
+    { id: "e24", r18: true, name: "", text: "夜明け前、腕の中で眠るセレナの寝顔を見ながら、俺は誓った。この人を、一生守っていこうと。" },
+    { id: "e25", bg: "room", name: "セレナ", text: "おはようございます、悠太。……ふふ、もう『先生』じゃないのですね。これからは二人で、この館に幸せを灯していきましょう。\n【GOOD END ― セレナの館】", end: true }
+  ]
+}
+];
+
+/* ================= エンジン ================= */
+const $ = (s) => document.querySelector(s);
+const elSelect = $("#select"), elGame = $("#game"), elCards = $("#cards");
+const elBg = $("#bgImg"), elChar = $("#charImg"), elName = $("#namebox"), elText = $("#text");
+const elChoices = $("#choices"), elLog = $("#backlog"), elLogLines = $("#logLines"), elGate = $("#gate");
+
+let G = null;          // 現在の作品
+let sceneMap = {};     // id -> {node, index}
+let flags = {};
+let cur = null;        // 現在のノード
+let backlog = [];
+let typing = null;     // typewriter timer
+let fullText = "";
+let ended = false;
+
+GAMES.forEach((g) => {
+  const card = document.createElement("button");
+  card.className = "card";
+  card.innerHTML = `<img src="${g.cover}" alt="" onerror="this.style.display='none'">
+    <div class="body"><h2>${g.title}</h2><div class="hero">${g.heroine}</div>
+    <p>${g.desc}</p><div class="tags">${g.r18 ? '<span class="r18">R18（文章のみ）</span>' : ''}選択肢・分岐あり／セーブ対応</div></div>`;
+  card.addEventListener("click", () => tryStart(g));
+  elCards.appendChild(card);
+});
+
+let pendingGame = null;
+function tryStart(g) {
+  if (g.r18 && !sessionStorage.getItem("vn_adult_ok")) { pendingGame = g; elGate.style.display = "flex"; return; }
+  startGame(g);
+}
+$("#gateYes").addEventListener("click", () => { sessionStorage.setItem("vn_adult_ok", "1"); elGate.style.display = "none"; if (pendingGame) startGame(pendingGame); });
+$("#gateNo").addEventListener("click", () => { elGate.style.display = "none"; pendingGame = null; });
+
+function startGame(g, save) {
+  G = g; flags = save ? (save.flags || {}) : {}; backlog = []; ended = false;
+  sceneMap = {}; g.scenes.forEach((n, i) => { sceneMap[n.id] = { node: n, index: i }; });
+  elSelect.style.display = "none"; elGame.style.display = "block";
+  elBg.style.opacity = 0; elChar.style.opacity = 0;
+  goTo(save && save.scene ? save.scene : g.scenes[0].id);
+}
+
+function resolve(id) {
+  // branch / jump のみのノードは即座に解決する
+  let guard = 0;
+  while (id && guard++ < 50) {
+    const e = sceneMap[id]; if (!e) return null;
+    const n = e.node;
+    if (n.branch) { const v = flags[n.branch.flag] || 0; const ok = n.branch.min !== undefined ? v >= n.branch.min : v === n.branch.eq; id = ok ? n.branch.then : n.branch.else; continue; }
+    if (n.jump && !n.text && !n.choice) { id = n.jump; continue; }
+    return n;
+  }
+  return null;
+}
+
+function goTo(id) { const n = resolve(id); if (!n) return toTitle(); cur = n; showNode(n); }
+
+function nextId(n) {
+  if (n.jump) return n.jump;
+  const e = sceneMap[n.id]; if (!e) return null;
+  const nxt = G.scenes[e.index + 1]; return nxt ? nxt.id : null;
+}
+
+function setImg(img, src) {
+  if (!src) { img.style.opacity = 0; return; }
+  if (img.getAttribute("src") === src) { img.style.opacity = 1; return; }
+  img.onerror = () => { img.style.opacity = 0; };
+  img.onload = () => { img.style.opacity = 1; };
+  img.src = src;
+}
+
+function showNode(n) {
+  if (n.set) applySet(n.set);
+  elGame.classList.toggle("r18mode", !!n.r18);
+  if (n.r18) { elChar.style.opacity = 0; }
+  else {
+    if (n.bg) setImg(elBg, G.images[n.bg]);
+    if (n.char) setImg(elChar, G.images.char); else if (n.char === false) elChar.style.opacity = 0;
+    else { /* char指定なし: 前の状態を維持。地の文では消す */ if (!n.name) elChar.style.opacity = 0; }
+  }
+  elName.textContent = n.name || "";
+  backlog.push({ name: n.name || "", text: n.text || "" });
+  ended = !!n.end;
+  typeText(n.text || "");
+  if (n.choice) showChoices(n.choice);
+}
+
+function typeText(t) {
+  fullText = t; elText.textContent = "";
+  if (typing) clearInterval(typing);
+  let i = 0;
+  typing = setInterval(() => {
+    i += 2; elText.textContent = t.slice(0, i);
+    if (i >= t.length) { clearInterval(typing); typing = null; }
+  }, 24);
+}
+
+function showChoices(list) {
+  elChoices.innerHTML = "";
+  list.forEach((c) => {
+    const b = document.createElement("button");
+    b.textContent = c.text;
+    b.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      elChoices.style.display = "none";
+      if (c.set) applySet(c.set);
+      goTo(c.jump);
+    });
+    elChoices.appendChild(b);
+  });
+  elChoices.style.display = "flex";
+}
+
+function applySet(s) { Object.keys(s).forEach((k) => { flags[k] = (typeof flags[k] === "number" && typeof s[k] === "number" && k === "love") ? Math.max(flags[k], s[k]) : s[k]; }); }
+
+$("#textbox").addEventListener("click", () => {
+  if (elChoices.style.display === "flex") return;
+  if (typing) { clearInterval(typing); typing = null; elText.textContent = fullText; return; }
+  if (ended) return toTitle();
+  if (!cur) return;
+  if (cur.choice) return; // 選択待ち
+  const id = nextId(cur);
+  if (id) goTo(id); else toTitle();
+});
+
+function toTitle() {
+  elGame.style.display = "none"; elSelect.style.display = "block";
+  elGame.classList.remove("r18mode"); G = null; cur = null;
+}
+
+$("#btnSave").addEventListener("click", (e) => { e.stopPropagation(); if (!G || !cur) return; localStorage.setItem("vn_save_" + G.id, JSON.stringify({ scene: cur.id, flags })); flash("セーブしました"); });
+$("#btnLoad").addEventListener("click", (e) => { e.stopPropagation(); if (!G) return; const s = localStorage.getItem("vn_save_" + G.id); if (!s) return flash("セーブデータがありません"); const save = JSON.parse(s); startGame(G, save); flash("ロードしました"); });
+$("#btnLog").addEventListener("click", (e) => { e.stopPropagation(); elLogLines.innerHTML = backlog.map((l) => `<div class="line">${l.name ? `<b>${l.name}</b>：` : ""}${l.text.replace(/\n/g, "<br>")}</div>`).join(""); elLog.style.display = "block"; });
+$("#btnLogClose").addEventListener("click", () => { elLog.style.display = "none"; });
+$("#btnTitle").addEventListener("click", (e) => { e.stopPropagation(); toTitle(); });
+
+function flash(msg) {
+  const d = document.createElement("div");
+  d.textContent = msg;
+  d.style.cssText = "position:absolute;top:52px;right:12px;z-index:9;background:rgba(30,28,60,.92);border:1px solid #8f7bff;border-radius:8px;padding:6px 12px;font-size:13px;";
+  elGame.appendChild(d); setTimeout(() => d.remove(), 1600);
+}
+</script>
+</body>
+</html>
